@@ -16,20 +16,24 @@ class LoginException(Exception):
     pass
 
 class LoginDialog(QDialog):
+    # Class constructor
     def __init__(self, parent = None):
+        # Standard gui initialization
         QDialog.__init__(self, parent)
         self.ui = Ui_login_dialog()
         self.ui.setupUi(self)
-        self.ui.login_button.clicked.connect(self.output)
-        self.ui.quit_button.clicked.connect(self.totalexit)
+        # Connect events and triggers
+        self.ui.login_button.clicked.connect(self.login)
+        self.ui.quit_button.clicked.connect(self.reject)
 
 
-    def totalexit(self):
+    # Override reject() to exit the dialog when quit button is clicked
+    def reject(self):
         self.close()
         sys.exit(0)
 
         
-    def output(self):
+    def login(self):
         usrname = self.ui.usrname_field.text()
         passwd = self.ui.passwd_field.text()
         if usrname !='' and passwd != '':
@@ -39,16 +43,20 @@ class LoginDialog(QDialog):
             try:
                 login_res = s.post("https://net.tsinghua.edu.cn/do_login.php", login_data, headers = login_headers)
             except Exception as reason:
+                # Possible network errors
                 easygui.buttonbox("Login failure: " + str(reason), choices = ["Try Again"])
             else:
-                if login_res.text == "Login is successful." or login_res.text == "IP has been online, please logout.":
-                    self.close()
+                # Login successful
+                if login_res.text == "Login is successful." or login_res.text == "IP has been online, please logout.":  
+                    self.accept()
+                # Login unsuccessful due to non-network errors
                 else:
                     easygui.buttonbox("Login failure: " + str(login_res.text), choices = ["Try Again"])
+        # Empty username or password
         else:
             easygui.buttonbox("Username and password must not be empty.", choices = ["Try Again"])
 
-
+        
 class OnlineDialog(QDialog):
     check_headers = {"Referer": "https://net.tsinghua.edu.cn/wired/succeed.html", 'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.0'}
     
@@ -60,14 +68,17 @@ class OnlineDialog(QDialog):
         self.acceptClose = False
 
 
+    # Prevent fake offline by closing the window
     def closeEvent(self, evnt):
         if self.acceptClose:
             super(OnlineDialog, self).closeEvent(evnt)
         else:
             evnt.ignore()
-            self.setWindowState(Qt.WindowMinimized)
+            self.setWindowState(Qt.WindowMinimized)  # Not working on linux
 
-    
+
+    # Update the online duration from server
+    # Data usage not working due to web API
     def update_data(self):
         try:
             s = requests.Session()
@@ -76,7 +87,7 @@ class OnlineDialog(QDialog):
                 if data.text == '':
                     raise Exception('off')
             except Exception as reason:
-                easygui.buttonbox("You are offline.", choices = ["OK"])
+                easygui.buttonbox("Something wrong with your network.", choices = ["OK"])
                 self.acceptClose = True
                 self.close()
                 sys.exit(0)
@@ -94,13 +105,16 @@ class OnlineDialog(QDialog):
         finally:
             QTimer.singleShot(1000, self.update_data)
 
-            
+
+    # Logout        
     def logout(self):
         s = requests.Session()
+        self.hide()  # Prevent "Something wrong with your network." dialog from showing up
         try:
             logout_res = s.post("https://net.tsinghua.edu.cn/do_login.php", {"action": "logout"}, headers = self.check_headers)
         except Exception as reason:
             easygui.buttonbox("Logout failure: " + str(reason), choices = ["OK"])
+            self.show()  # Restore the dialog if any problems
         self.acceptClose = True
         self.close()
             
