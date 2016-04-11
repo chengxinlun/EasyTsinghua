@@ -4,11 +4,12 @@ import os
 import sys
 import hashlib
 import easygui
+import warnings
 from PyQt5.QtWidgets import QDialog, QApplication, QMessageBox
 from PyQt5.QtCore import QTimer, Qt
 from login_dialog import Ui_login_dialog
 from online_dialog import Ui_Dialog
-from UpSaver import UsrPasswd
+# from UpSaver import UsrPasswd
 
 
 class LoginException(Exception):
@@ -17,7 +18,7 @@ class LoginException(Exception):
 
 class LoginDialog(QDialog):
     cert_dir = ""
-    up = UsrPasswd()
+    # up = UsrPasswd()
     username = ""
     password = ""
     
@@ -27,6 +28,7 @@ class LoginDialog(QDialog):
         QDialog.__init__(self, parent)
         self.ui = Ui_login_dialog()
         self.ui.setupUi(self)
+        self.setWindowFlags(Qt.WindowMinimizeButtonHint)  # Show minize button instead of help
         # Connect events and triggers
         self.ui.login_button.clicked.connect(self.login)
         self.ui.quit_button.clicked.connect(self.reject)
@@ -53,9 +55,11 @@ class LoginDialog(QDialog):
             login_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.0'}
             try:
                 login_res = s.post("https://net.tsinghua.edu.cn/do_login.php", login_data, headers = login_headers, verify = self.cert_dir)
-            except Exception as reason:
-                # Possible network errors
-                easygui.buttonbox("Login failure: " + str(reason), choices = ["Try Again"])
+            except Exception as reason:  # Possible network errors
+                net_error_handle = QMessageBox.critical(self, "Network problem", "Login failure: " + str(reason), QMessageBox.Abort | QMessageBox.Retry)
+                if net_error_handle == QMessageBox.Abort:
+                    self.close()
+                    sys.exit(255)
             else:
                 # Login successful
                 if login_res.text == "Login is successful." or login_res.text == "IP has been online, please logout.":
@@ -64,25 +68,31 @@ class LoginDialog(QDialog):
                     self.accept()
                 # Login unsuccessful due to non-network errors
                 else:
-                    easygui.buttonbox("Login failure: " + str(login_res.text), choices = ["Try Again"])
+                    login_error_handle = QMessageBox.critical(self, "Authorization failure", "Login failure: " + str(login_res.text), QMessageBox.Abort | QMessageBox.Retry)
+                    if login_error_handle == QMessageBox.Abort:
+                        self.close()
+                        sys.exit(0)
         # Empty username or password
         else:
-            easygui.buttonbox("Username and password must not be empty.", choices = ["Try Again"])
+            QMessageBox.information(self, "TuNet Client", "Username and password must not be empty.")
 
         
 class OnlineDialog(QDialog):
     check_headers = {"Referer": "https://net.tsinghua.edu.cn/wired/succeed.html", 'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.0'}
     cert_dir = ""
-    do_logout = False  # Prevent user logout to be judged as network problem
+    accept_close = False
     username = ""
     password = ""
+    update_times = 0 
+
     
     def __init__(self, cert, usrname, passwd, parent = None):
         QDialog.__init__(self, parent)
         self.ui = Ui_Dialog()
         self.ui.setupUi(self)
+        self.setWindowFlags(Qt.WindowMinimizeButtonHint)
         self.ui.logout_button.clicked.connect(self.logout)
-        self.acceptClose = False
+        self.accept_close = False
         self.cert_dir = cert
         self.username = usrname
         self.password = passwd
@@ -90,7 +100,7 @@ class OnlineDialog(QDialog):
 
     # Prevent fake offline by closing the window
     def closeEvent(self, evnt):
-        if self.acceptClose:
+        if self.accept_close:
             super(OnlineDialog, self).closeEvent(evnt)
         else:
             evnt.ignore()
@@ -119,8 +129,39 @@ class OnlineDialog(QDialog):
         s.close()
         return download
 
+
+
+    def update_time(self):
+        try:
+            s = requests.Session()
+            try:
+                data = s.get("https://net.tsinghua.edu.cn/rad_user_info.php", headers = self.check_headers, verify = self.cert_dir)
+                if data.text == '':
+                    raise Exception('off')
+            except Exception as reason:
+                if not self.accept_close:
+                    login_error_handle = QMessageBox.critical(self, "Unexpected network problem", "Something wrong with your network. Please logout manually", QMessageBox.Abort)
+                    self.accept_close = True
+                    self.close()
+                    sys.exit(0)
+            data_list = data.text.split(',')
+            login_time = int(data_list[2]) - int(data_list[1])
+            self.ui.hour.display(int(login_time / 3600))
+            self.ui.minute.display(int((login_time - self.ui.hour.value() * 3600) / 60))
+            self.ui.second.display(int((login_time % 60)))
+            self.ui.hour.repaint()
+            self.ui.minute.repaint()
+            self.ui.second.repaint()
+        finally:
+            self.update_times = self.update_times + 1
+            if self.update_times != 10:
+                QTimer.singleShot(1000, self.update_time)
+            else:
+                self.update_times = 0
+                QTimer.singleShot(1000, self.update_data)
     
-    # Update the online duration from server
+        
+    # Update the data usage from usereg.tsinghua.edu.cn
     # Update is performed every 10 seconds
     # Don't worry. It's campus network, and it won't count into the data plan.
     def update_data(self):
@@ -131,25 +172,21 @@ class OnlineDialog(QDialog):
                 if data.text == '':
                     raise Exception('off')
             except Exception as reason:
-                if not do_logout:
-                    easygui.buttonbox("Something wrong with your network. Please logout manually", choices = ["OK"])
-                    self.acceptClose = True
+                if not self.accept_close:
+                    login_error_handle = QMessageBox.critical(self, "Unexpected network problem", "Something wrong with your network. Please logout manually", QMessageBox.Abort)
+                    self.accept_close = True
                     self.close()
                     sys.exit(0)
             data_list = data.text.split(',')
-            login_time = int(data_list[2]) - int(data_list[1])
             data_usage = float(data_list[6]) * 0.001 * 0.001 *0.001
-            data_usage = float(self.update_data_usereg()) * 0.001 * 0.001 *0.001 + data_usage
-            self.ui.hour.display(int(login_time / 3600))
-            self.ui.minute.display(int((login_time - self.ui.hour.value() * 3600) / 60))
-            self.ui.second.display(int((login_time % 60)))
-            self.ui.data.display(float(data_usage))
-            self.ui.hour.repaint()
-            self.ui.minute.repaint()
-            self.ui.second.repaint()
+            try:
+                data_usage = float(self.update_data_usereg()) * 0.001 * 0.001 *0.001 + data_usage
+            except Exception:
+                pass
+            self.ui.data.display(data_usage)
             self.ui.data.repaint()
         finally:
-            QTimer.singleShot(10000, self.update_data)
+            QTimer.singleShot(1000, self.update_time)
         
 
     # Logout        
@@ -158,9 +195,8 @@ class OnlineDialog(QDialog):
         try:
             logout_res = s.post("https://net.tsinghua.edu.cn/do_login.php", {"action": "logout"}, headers = self.check_headers, verify = self.cert_dir)
         except Exception as reason:
-            easygui.buttonbox("Logout failure: " + str(reason), choices = ["OK"])
-        self.do_logout = True
-        self.acceptClose = True
+            logout_error_handle = QMessageBox.critical(self, "Logout error", "Logout failure: " + str(reason), QMessageBox.Ok)
+        self.accept_close = True
         self.close()
             
 
@@ -182,7 +218,7 @@ class TunetClient():
         return os.path.join(datadir, filename)
 
 
-    # Check whether you are online or not
+    # Check whether you are online or not (currently useless)
     def check_online(self):
         self.cert_dir = self.find_data_file("cacert.pem")
         s = requests.Session()
@@ -215,9 +251,9 @@ class TunetClient():
         od.update_data()
         app.exec_()
         
-            
         
+warnings.filterwarnings("ignore")
 t=TunetClient()
 t.login()
 t.check_time_datausage()
-easygui.buttonbox("Logout successful. Have a nice day.", choices = ["Quit"])            
+easygui.buttonbox("Logout successful. Have a nice day.", choices = ["Quit"])

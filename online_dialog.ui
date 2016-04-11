@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>554</width>
-    <height>403</height>
+    <width>553</width>
+    <height>405</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -25,8 +25,8 @@
   <widget class="QWidget" name="">
    <property name="geometry">
     <rect>
-     <x>1</x>
-     <y>-9</y>
+     <x>0</x>
+     <y>-7</y>
      <width>551</width>
      <height>411</height>
     </rect>
@@ -54,7 +54,7 @@
        </font>
       </property>
       <property name="text">
-       <string>TUNet Client</string>
+       <string>TuNet Client</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignCenter</set>
@@ -273,6 +273,21 @@
        </spacer>
       </item>
      </layout>
+    </item>
+    <item>
+     <widget class="QLabel" name="label_8">
+      <property name="font">
+       <font>
+        <pointsize>9</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>The data usage displayed is only for reference just like all other TuNet client</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
     </item>
     <item>
      <spacer name="verticalSpacer">

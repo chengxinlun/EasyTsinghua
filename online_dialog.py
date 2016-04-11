@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
-        Dialog.resize(554, 403)
+        Dialog.resize(553, 405)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -19,7 +19,7 @@ class Ui_Dialog(object):
         Dialog.setSizePolicy(sizePolicy)
         Dialog.setSizeGripEnabled(False)
         self.widget = QtWidgets.QWidget(Dialog)
-        self.widget.setGeometry(QtCore.QRect(1, -9, 551, 411))
+        self.widget.setGeometry(QtCore.QRect(0, -7, 551, 411))
         self.widget.setObjectName("widget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.widget)
         self.verticalLayout.setObjectName("verticalLayout")
@@ -110,6 +110,13 @@ class Ui_Dialog(object):
         spacerItem7 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem7)
         self.verticalLayout.addLayout(self.horizontalLayout)
+        self.label_8 = QtWidgets.QLabel(self.widget)
+        font = QtGui.QFont()
+        font.setPointSize(9)
+        self.label_8.setFont(font)
+        self.label_8.setAlignment(QtCore.Qt.AlignCenter)
+        self.label_8.setObjectName("label_8")
+        self.verticalLayout.addWidget(self.label_8)
         spacerItem8 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem8)
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
@@ -140,12 +147,13 @@ class Ui_Dialog(object):
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
         Dialog.setWindowTitle(_translate("Dialog", "You are currently online"))
-        self.label_6.setText(_translate("Dialog", "TUNet Client"))
+        self.label_6.setText(_translate("Dialog", "TuNet Client"))
         self.label.setText(_translate("Dialog", "Online Duration"))
         self.label_2.setText(_translate("Dialog", ":"))
         self.label_3.setText(_translate("Dialog", ":"))
         self.label_4.setText(_translate("Dialog", "Data Usage"))
         self.label_5.setText(_translate("Dialog", "G"))
+        self.label_8.setText(_translate("Dialog", "The data usage displayed is only for reference just like all other TuNet client"))
         self.logout_button.setText(_translate("Dialog", "Logout"))
         self.label_7.setText(_translate("Dialog", "Programmed by Cheng Xinlun Physics 41"))
 
