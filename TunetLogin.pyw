@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import QDialog, QApplication, QMessageBox
 from PyQt5.QtCore import QTimer, Qt
 from login_dialog import Ui_login_dialog
 from online_dialog import Ui_Dialog
+from UOP import UOP
 # from UpSaver import UsrPasswd
 
 
@@ -115,16 +116,15 @@ class OnlineDialog(QDialog):
         data = s.post("https://usereg.tsinghua.edu.cn/do.php", login_data, headers = header, verify = False)  # Have to turn off SSL verification to prevent crashing
         if data.text != 'ok':
             raise Exception('off')
-        data_usage_html = s.get("https://usereg.tsinghua.edu.cn/online_user_ipv4.php", headers = header, verify = False).text.split("可用时长")[1].split("</td>")[4]
-        download = data_usage_html.split('<td class="maintd">')[1]
-        if download.endswith("B"):
-            download = float(download.split("B")[0])
-        elif download.endswith("K"):
-            download = float(download.split("K")[0]) * 1000
-        elif download.endswith("M"):
-            download = float(download.split("M")[0]) * 1000 * 1000
-        elif download.endswith("G"):
-            download = float(download.split("G")[0]) * 1000 * 1000 * 1000
+        data_usage_html = s.get("https://usereg.tsinghua.edu.cn/online_user_ipv4.php", headers = header, verify = False).text
+        # Parsing html using user-defined class
+        parser = UOP(data_usage_html)
+        parser.find_table()
+        parser.get_online_info()
+        # Add them up
+        download = 0.0
+        for each in parser.online_info:
+            download = each["入流量"] + download
         last = s.post("https://usereg.tsinghua.edu.cn/do.php", {"action": "logout"}, headers = header, verify = False)
         s.close()
         return download
