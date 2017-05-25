@@ -6,36 +6,30 @@ class UOP():
     online_no = 0
     online_info = []
     bs = object()
+    down = 0.0
 
-    
     def __init__(self, html):
         self.bs = BeautifulSoup(html, 'html.parser')
 
-
     def find_table(self):
+        temp = []
         for each in self.bs.find_all("td", "maintd"):
-            self.table_list.append(each.get_text())
-        temp = [self.table_list[i + 1: i + 14] for i in range(0, len(self.table_list), 14)]
-        self.table_list = temp
-
+            temp.append(each.get_text())
+        self.table_list = [temp[i + 1: i + 14] for i in range(0, len(temp), 14)]
 
     def parse_data_usage(self):
-        for each in self.online_info:
-            key_list = ["入流量", "出流量"]
-            for each_key in key_list:
-                if each[each_key].endswith("B"):
-                    each[each_key] = float(each[each_key].split("B")[0])
-                elif each[each_key].endswith("K"):
-                    each[each_key] = float(each[each_key].split("K")[0]) * 1000
-                elif each[each_key].endswith("M"):
-                    each[each_key] = float(each[each_key].split("M")[0]) * 1000 * 1000
-                elif each[each_key].endswith("G"):
-                    each[each_key] = float(each[each_key].split("G")[0]) * 1000 * 1000 * 1000
-
+        d = 0
+        for each in self.table_list:
+            if each[2].endswith("B"):
+                d = d + float(each[2].split("B")[0])
+            elif each[2].endswith("K"):
+                d = d + float(each[2].split("K")[0]) * 1000.0
+            elif each[2].endswith("M"):
+                d = d + float(each[2].split("M")[0]) * 1000.0 * 1000.0
+            elif each[2].endswith("G"):
+                d = d + float(each[2].split("G")[0]) * 1000.0 * 1000.0 * 1000.0
+        return d
 
     def get_online_info(self):
-        for i in range(1, len(self.table_list)):
-            temp = dict(zip(self.table_list[0], self.table_list[i]))
-            self.online_info.append(temp)
-        self.online_no = len(self.online_info)
-        self.parse_data_usage()
+        d = self.parse_data_usage()
+        self.down = d
